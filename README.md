@@ -195,22 +195,21 @@ la raíz del repo** porque necesitan `package-lock.json` y `packages/shared` del
    arrancar el servidor, así que las migraciones quedan aplicadas en cada despliegue.
 
 3. La app queda en `http://localhost` (o el `WEB_PORT` que hayas configurado) y la API
-   en `http://localhost:4000` (`API_PORT`). Para cargar el seed inicial en producción
-   (solo la primera vez, con datos reales — no el catálogo demo):
+   en `http://localhost:4000` (`API_PORT`).
 
-   ```bash
-   docker compose -f docker/docker-compose.prod.yml exec api npm run db:seed
-   ```
+   La imagen de `api` en producción **no** incluye `tsx` ni el resto de las
+   devDependencies (a propósito, para que la imagen final sea liviana), así que
+   `prisma/seed.ts` no se puede correr ahí — y tampoco tendría mucho sentido cargar el
+   catálogo de ejemplo en una base de un negocio real. Si necesitás poblar datos
+   iniciales (roles y un usuario administrador, como mínimo) en una base nueva, corré
+   las migraciones/seed desde un entorno de desarrollo normal apuntando su
+   `DATABASE_URL` a la base de producción, o cargalos a mano.
 
-   revisando antes `apps/api/prisma/seed.ts`, ya que tal como está pensado siembra
-   datos de ejemplo (útiles para una demo, no para arrancar un negocio real desde cero).
-
-> **Nota:** los Dockerfiles y el compose de producción se armaron siguiendo las
-> convenciones estándar de Docker/Node/Nginx para este tipo de stack, pero no pudieron
-> construirse ni levantarse en este entorno de desarrollo (no tiene Docker instalado —
-> ver decisión registrada al arrancar el proyecto). Antes de un despliegue real, correr
-> el `docker compose ... up --build` una vez en un entorno con Docker y confirmar que
-> los tres servicios levantan y la app responde en el navegador.
+> **Verificado end-to-end en un entorno con Docker Desktop** (build de las dos
+> imágenes, los tres contenedores levantando, login real a través del proxy de Nginx y
+> navegación por rutas de React Router server-side). En esa verificación aparecieron y
+> se corrigieron dos bugs reales que el desarrollo local (sin Docker) nunca hubiera
+> detectado — ver "Fase 10" en `docs/ARQUITECTURA.md` para el detalle.
 
 ## Estado del proyecto
 

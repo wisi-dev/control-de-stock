@@ -117,7 +117,7 @@ Reglas de integridad ya modeladas en el schema:
 | 7 | Caja | ✅ Completa |
 | 8 | Dashboard y reportes | ✅ Completa |
 | 9 | Testing, seguridad, optimización | ✅ Completa |
-| 10 | Docker de producción, deployment, documentación final | ✅ Completa (Docker sin verificar en este entorno — ver nota en README) |
+| 10 | Docker de producción, deployment, documentación final | ✅ Completa (verificada de punta a punta con Docker Desktop) |
 
 Al cerrar cada fase: se corren pruebas/typecheck, se revisan errores, se verifica la
 integración con lo ya construido, y se explica brevemente qué se agregó antes de pasar
@@ -328,10 +328,46 @@ misma base `node:20-alpine` que el stage final — así el binario nativo que
 Prisma descarga en el build ya es el de Linux/musl que necesita el
 contenedor de producción, sin fijar `binaryTargets` a mano en el schema.
 
-**Deuda declarada, no oculta**: esta máquina de desarrollo no tiene Docker
-instalado (decisión tomada explícitamente en la Fase 1 para evitar habilitar
-WSL2/virtualización solo para verificar el proyecto — se usó Postgres nativo
-en su lugar). Los archivos de Docker de esta fase están escritos siguiendo
-las convenciones estándar del ecosistema, pero **no se pudo correr
-`docker build`/`docker compose up` para verificarlos en este entorno**. Se
-documenta explícitamente en el README en vez de reportarlo como probado.
+**Docker se instaló después y el stack se verificó de punta a punta.** Esta
+máquina no tenía Docker (decisión tomada en la Fase 1 para evitar habilitar
+WSL2 solo para verificar el proyecto — se usó Postgres nativo). Al pedirlo
+explícitamente se instaló Docker Desktop; WSL2 ya venía habilitado por el
+propio instalador, sin reiniciar Windows. Con Docker corriendo se armó un
+stack de prueba (red Docker propia, Postgres + `api` + `web`, con nombres de
+servicio calcados de `docker-compose.prod.yml`) y se verificó: build de las
+dos imágenes, migración automática al arrancar `api`, `GET /health` real,
+login a través del proxy de Nginx, y navegación directa a una ruta de React
+Router (`/productos`) para confirmar que `try_files` sirve bien el SPA.
+
+Esa verificación encontró **dos bugs reales** que ningún test ni la Fase 9
+había detectado, porque el desarrollo (`tsx`/Vite) nunca pasa por el mismo
+camino de resolución de módulos que Node en producción:
+
+1. **`packages/shared/package.json` apuntaba `main`/`types` directo a
+   `./src/index.ts`.** En desarrollo funciona porque `tsx` y Vite ejecutan
+   TypeScript sin compilar; en producción, `node dist/server.js` intenta
+   resolver ese import con el Node runtime puro, que no sabe interpretar
+   `.ts`, y el proceso moría al arrancar (`ERR_MODULE_NOT_FOUND`). Corregido
+   apuntando a `./dist/index.js` / `./dist/index.d.ts` (el build ya
+   compilaba ahí, solo el `package.json` apuntaba mal).
+2. **Los `Dockerfile` no copiaban `tsconfig.base.json`** — tanto
+   `packages/shared/tsconfig.json` como el de `api`/`web` lo extienden con
+   una ruta relativa a la raíz del repo, que dentro de la imagen no existía
+   sin copiarlo explícitamente. `tsc` fallaba con `TS5083` antes de generar
+   un solo archivo.
+
+Ambos se corrigieron en los `Dockerfile` y en `packages/shared/package.json`
+reales (no solo en la copia de prueba), y se repitió la verificación
+completa (incluyendo `npm run build`/`typecheck`/`test` en el host, para
+confirmar que el fix de `package.json` no rompía el desarrollo normal) antes
+de dar la fase por terminada.
+
+**Nota de entorno, para quien reproduzca esto en una máquina similar**: el
+antivirus (Avast) intercepta TLS para escanear tráfico y reinstala su propio
+certificado raíz en el almacén de Windows — confiado por el host, pero no
+por el store de certificados dentro de cada contenedor. Esto rompía `apk
+add` y `npm ci` *solo dentro de los contenedores* (`google.com` respondía
+bien, `registry.npmjs.org` y el CDN de Alpine no) hasta exportar ese
+certificado e inyectarlo en el build de verificación. No se dejó ese
+certificado en los `Dockerfile` finales — es específico de este antivirus en
+esta máquina, no algo que deba viajar a una imagen de producción real.

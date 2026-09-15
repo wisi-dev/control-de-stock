@@ -9,7 +9,7 @@ WORKDIR /repo
 
 # --- deps: instala con los package.json de todo el workspace ---
 FROM base AS deps
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json tsconfig.base.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/shared/package.json packages/shared/package.json
 RUN npm ci --workspace=@control-stock/api --workspace=@control-stock/shared --include-workspace-root

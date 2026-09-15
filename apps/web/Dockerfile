@@ -5,7 +5,7 @@ FROM node:20-alpine AS base
 WORKDIR /repo
 
 FROM base AS deps
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
 RUN npm ci --workspace=@control-stock/web --workspace=@control-stock/shared --include-workspace-root
