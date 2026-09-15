@@ -112,7 +112,7 @@ Reglas de integridad ya modeladas en el schema:
 | 2 | Autenticación (JWT), usuarios, roles y permisos | ✅ Completa |
 | 3 | Productos, categorías, marcas, proveedores | ✅ Completa |
 | 4 | Inventario, movimientos, alertas de stock | ✅ Completa |
-| 5 | Compras | Pendiente |
+| 5 | Compras | ✅ Completa |
 | 6 | Ventas | Pendiente |
 | 7 | Clientes y caja | Pendiente |
 | 8 | Dashboard y reportes | Pendiente |
@@ -177,7 +177,22 @@ subir un `multipart/form-data`, evitando agregar `multer` solo para esto.
 Categoría/Marca se crean automáticamente si no existen (por nombre); Proveedor
 debe existir ya, para no crear proveedores duplicados por un nombre mal tipeado.
 
-## 6. Deuda técnica conocida (a revisar en Fase 9)
+## 6. Fase 5 — Compras
+
+**Comprar es un proceso de dos pasos, no uno**: `POST /api/purchases` crea la
+compra en estado `PENDIENTE` sin tocar el stock; `PUT /api/purchases/:id/receive`
+es el único lugar que suma stock (movimiento `COMPRA` + `Product.currentStock`,
+en una transacción). Esto separa "el proveedor me confirmó el pedido" de "la
+mercadería ya llegó al depósito" — reflejado en el propio enum `PurchaseStatus`
+del schema de la Fase 1. Una compra pendiente se puede cancelar; una recibida
+o cancelada ya no cambia de estado (probado explícitamente contra la API).
+
+**Totales siempre recalculados en el backend** (`subtotal` = suma de
+`cantidad × precio` por ítem, `total` = `subtotal - descuento + impuesto`) —
+nunca se confía en un total que mande el cliente, ni siquiera para mostrarlo,
+para que un frontend desactualizado no pueda inflar o pisar un monto.
+
+## 7. Deuda técnica conocida (a revisar en Fase 9)
 
 `npm audit` reporta vulnerabilidades en `vite`/`esbuild` (moderate/high, servidor de
 desarrollo) y `vitest` (critical, solo se ejecuta en tests) y `react-router-dom`

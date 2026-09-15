@@ -11,3 +11,4 @@ export * from './schemas/brand.schema.js';
 export * from './schemas/supplier.schema.js';
 export * from './schemas/product.schema.js';
 export * from './schemas/inventory.schema.js';
+export * from './schemas/purchase.schema.js';
