@@ -11,25 +11,26 @@ import {
   ShieldCheck,
   ArrowLeftRight,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { hasPermission } from '@control-stock/shared';
 import { cn } from '../../lib/utils.js';
 import { useAuthStore } from '../../store/authStore.js';
 
+/** `permission` es la clave mínima requerida para ver el ítem (`null` = siempre visible). */
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/productos', label: 'Productos', icon: Package },
-  { to: '/inventario', label: 'Inventario', icon: ArrowLeftRight },
-  { to: '/compras', label: 'Compras', icon: Truck },
-  { to: '/ventas', label: 'Ventas', icon: ShoppingCart },
-  { to: '/clientes', label: 'Clientes', icon: Users },
-  { to: '/proveedores', label: 'Proveedores', icon: Boxes },
-  { to: '/caja', label: 'Caja', icon: Wallet },
-  { to: '/reportes', label: 'Reportes', icon: BarChart3 },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: null },
+  { to: '/productos', label: 'Productos', icon: Package, permission: 'products:read' },
+  { to: '/inventario', label: 'Inventario', icon: ArrowLeftRight, permission: 'inventory:read' },
+  { to: '/compras', label: 'Compras', icon: Truck, permission: 'purchases:read' },
+  { to: '/ventas', label: 'Ventas', icon: ShoppingCart, permission: 'sales:read' },
+  { to: '/clientes', label: 'Clientes', icon: Users, permission: 'customers:read' },
+  { to: '/proveedores', label: 'Proveedores', icon: Boxes, permission: 'suppliers:read' },
+  { to: '/caja', label: 'Caja', icon: Wallet, permission: 'cashregister:read' },
+  { to: '/reportes', label: 'Reportes', icon: BarChart3, permission: 'reports:read' },
 ];
 
-/** `permission` es la clave requerida para ver el ítem — solo el rol Administrador la tiene por defecto. */
 const bottomNavItems = [
   { to: '/usuarios', label: 'Usuarios y roles', icon: ShieldCheck, permission: 'users:*' },
   { to: '/configuracion', label: 'Configuración', icon: Settings, permission: 'settings:*' },
@@ -83,6 +84,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const permissions = useAuthStore((s) => s.user?.permissions ?? []);
+  const visibleNavItems = navItems.filter((item) => !item.permission || hasPermission(permissions, item.permission));
   const visibleBottomItems = bottomNavItems.filter((item) => hasPermission(permissions, item.permission));
 
   return (
@@ -95,7 +97,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-        {navItems.map(({ to, label, icon }) => (
+        {visibleNavItems.map(({ to, label, icon }) => (
           <SidebarLink key={to} to={to} label={label} icon={icon} onNavigate={onNavigate} />
         ))}
       </nav>
@@ -111,12 +113,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function SidebarLink({
-  to,
-  label,
-  icon: Icon,
-  onNavigate,
-}: (typeof navItems)[number] & { onNavigate?: () => void }) {
+interface SidebarLinkProps {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  onNavigate?: () => void;
+}
+
+function SidebarLink({ to, label, icon: Icon, onNavigate }: SidebarLinkProps) {
   return (
     <NavLink
       to={to}

@@ -21,3 +21,16 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 
 export const updateProductSchema = createProductSchema.partial();
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+
+export const productListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  search: z.string().trim().min(1).optional(),
+  categoryId: z.string().optional(),
+  brandId: z.string().optional(),
+  supplierId: z.string().optional(),
+  status: z.nativeEnum(ProductStatus).optional(),
+  sortBy: z.enum(['name', 'sku', 'salePrice', 'currentStock', 'createdAt']).default('name'),
+  sortDir: z.enum(['asc', 'desc']).default('asc'),
+});
+export type ProductListQuery = z.infer<typeof productListQuerySchema>;

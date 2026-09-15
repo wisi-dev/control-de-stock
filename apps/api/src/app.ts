@@ -11,7 +11,11 @@ import { authRouter } from './modules/auth/auth.routes.js';
 import { usersRouter } from './modules/users/users.routes.js';
 import { rolesRouter } from './modules/roles/roles.routes.js';
 import { settingsRouter } from './modules/settings/settings.routes.js';
-// Los routers de los próximos módulos (products, inventory, purchases, ...)
+import { categoriesRouter } from './modules/categories/categories.routes.js';
+import { brandsRouter } from './modules/brands/brands.routes.js';
+import { suppliersRouter } from './modules/suppliers/suppliers.routes.js';
+import { productsRouter } from './modules/products/products.routes.js';
+// Los routers de los próximos módulos (inventory, purchases, sales, ...)
 // se registran acá a medida que se implementan en las siguientes fases.
 
 export function createApp() {
@@ -49,8 +53,12 @@ export function createApp() {
   app.use('/api/users', usersRouter);
   app.use('/api/roles', rolesRouter);
   app.use('/api/settings', settingsRouter);
-  // Próximos módulos: products, categories, brands, suppliers, inventory,
-  // purchases, sales, customers, cashregister, reports, audit.
+  app.use('/api/categories', categoriesRouter);
+  app.use('/api/brands', brandsRouter);
+  app.use('/api/suppliers', suppliersRouter);
+  app.use('/api/products', productsRouter);
+  // Próximos módulos: inventory, purchases, sales, customers, cashregister,
+  // reports, audit.
 
   app.use(notFoundHandler);
   app.use(errorHandler);

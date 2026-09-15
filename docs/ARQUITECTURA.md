@@ -110,7 +110,7 @@ Reglas de integridad ya modeladas en el schema:
 |---|---|---|
 | 1 | Arquitectura, monorepo, base de datos, configuración inicial | ✅ Completa |
 | 2 | Autenticación (JWT), usuarios, roles y permisos | ✅ Completa |
-| 3 | Productos, categorías, marcas, proveedores | Pendiente |
+| 3 | Productos, categorías, marcas, proveedores | ✅ Completa |
 | 4 | Inventario, movimientos, alertas de stock | Pendiente |
 | 5 | Compras | Pendiente |
 | 6 | Ventas | Pendiente |
@@ -150,7 +150,34 @@ sin romper el flujo principal si el log fallara.
 acá para todos los módulos siguientes. `RequireAuth` valida el token contra `/auth/me` al
 refrescar la página antes de dejar pasar a cualquier ruta protegida.
 
-## 5. Deuda técnica conocida (a revisar en Fase 9)
+## 5. Fase 3 — Productos, categorías, marcas, proveedores
+
+**`Decimal` de Prisma serializa como string en JSON** (usa el `toJSON` de
+decimal.js): sin convertirlo explícitamente a `Number` en el service antes de
+responder, el frontend recibe `"1400.00"` en vez de `1400` y rompe cualquier
+`.toFixed()` o cálculo aritmético sobre el valor. Se corrigió en
+`products.service.ts` y `settings.service.ts` (`serializeProduct`/`serialize`);
+**hay que repetir el mismo patrón en Compras, Ventas y Caja (Fases 5-7)**, que
+también tienen campos `Decimal`.
+
+**Categorías y marcas se gestionan dentro de la pantalla de Productos** (tabs),
+no como ítems de navegación propios — son catálogos de apoyo, no módulos de
+negocio independientes. Proveedores sí tiene su propia página porque en fases
+siguientes (Compras) va a mostrar historial de compras y productos asociados.
+
+**Listado de productos paginado y filtrable** en el backend (`page`, `pageSize`,
+`search`, `categoryId`, `brandId`, `supplierId`, `status`, `sortBy`, `sortDir`)
+en vez de traer todo el catálogo al frontend — necesario ya que un comercio
+real puede tener miles de productos.
+
+**Import/export CSV sin dependencias nuevas**: parser/writer propios en
+`common/utils/csv.ts` (alcanza para el formato simple que necesitamos) y el
+import lee el archivo como texto en el navegador (`File.text()`) en vez de
+subir un `multipart/form-data`, evitando agregar `multer` solo para esto.
+Categoría/Marca se crean automáticamente si no existen (por nombre); Proveedor
+debe existir ya, para no crear proveedores duplicados por un nombre mal tipeado.
+
+## 6. Deuda técnica conocida (a revisar en Fase 9)
 
 `npm audit` reporta vulnerabilidades en `vite`/`esbuild` (moderate/high, servidor de
 desarrollo) y `vitest` (critical, solo se ejecuta en tests) y `react-router-dom`
