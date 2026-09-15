@@ -10,6 +10,7 @@ import {
   Settings,
   ShieldCheck,
   ArrowLeftRight,
+  X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils.js';
@@ -31,10 +32,56 @@ const bottomNavItems = [
   { to: '/configuracion', label: 'Configuración', icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
+}
+
+export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-surface md:flex">
-      <div className="flex h-14 items-center gap-2 border-b border-slate-100 px-5">
+    <>
+      {/* Desktop: sidebar fija */}
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-surface md:flex">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile: drawer superpuesto con backdrop */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div
+            className="absolute inset-0 bg-slate-900/40"
+            onClick={onCloseMobile}
+            aria-hidden="true"
+          />
+          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col bg-surface shadow-xl">
+            <div className="flex h-14 items-center justify-between border-b border-slate-100 px-5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-600 text-sm font-bold text-white">
+                  CS
+                </div>
+                <span className="text-sm font-semibold text-ink">Control de Stock</span>
+              </div>
+              <button
+                type="button"
+                onClick={onCloseMobile}
+                aria-label="Cerrar menú"
+                className="rounded-lg p-1.5 text-ink-muted hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <SidebarContent onNavigate={onCloseMobile} />
+          </aside>
+        </div>
+      )}
+    </>
+  );
+}
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <>
+      <div className="hidden h-14 items-center gap-2 border-b border-slate-100 px-5 md:flex">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-600 text-sm font-bold text-white">
           CS
         </div>
@@ -43,23 +90,29 @@ export function Sidebar() {
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
         {navItems.map((item) => (
-          <SidebarLink key={item.to} {...item} />
+          <SidebarLink key={item.to} onNavigate={onNavigate} {...item} />
         ))}
       </nav>
 
       <div className="space-y-0.5 border-t border-slate-100 px-3 py-4">
         {bottomNavItems.map((item) => (
-          <SidebarLink key={item.to} {...item} />
+          <SidebarLink key={item.to} onNavigate={onNavigate} {...item} />
         ))}
       </div>
-    </aside>
+    </>
   );
 }
 
-function SidebarLink({ to, label, icon: Icon }: (typeof navItems)[number]) {
+function SidebarLink({
+  to,
+  label,
+  icon: Icon,
+  onNavigate,
+}: (typeof navItems)[number] & { onNavigate?: () => void }) {
   return (
     <NavLink
       to={to}
+      onClick={onNavigate}
       className={({ isActive }) =>
         cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
