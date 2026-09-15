@@ -1,0 +1,406 @@
+// Schema de base de datos — Sistema de Control de Stock
+// PostgreSQL + Prisma ORM. Ver /docs de arquitectura en el README raíz.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum RoleName {
+  ADMINISTRADOR
+  ENCARGADO
+  VENDEDOR
+}
+
+enum ProductStatus {
+  ACTIVO
+  INACTIVO
+  DESCONTINUADO
+}
+
+enum MovementType {
+  ENTRADA
+  SALIDA
+  AJUSTE_POSITIVO
+  AJUSTE_NEGATIVO
+  VENTA
+  COMPRA
+  DEVOLUCION
+  CORRECCION
+}
+
+enum ReferenceType {
+  PURCHASE
+  SALE
+  MANUAL
+}
+
+enum PurchaseStatus {
+  PENDIENTE
+  RECIBIDA
+  CANCELADA
+}
+
+enum SaleStatus {
+  COMPLETADA
+  ANULADA
+}
+
+enum PaymentMethod {
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA
+  OTRO
+}
+
+enum CashRegisterStatus {
+  ABIERTA
+  CERRADA
+}
+
+enum CashMovementType {
+  INGRESO
+  EGRESO
+  VENTA
+}
+
+// ---------------------------------------------------------------------------
+// Usuarios, roles y permisos
+// ---------------------------------------------------------------------------
+
+model Role {
+  id          String           @id @default(cuid())
+  name        RoleName         @unique
+  description String?
+  permissions RolePermission[]
+  users       User[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("roles")
+}
+
+/// Permisos granulares (ej: "products:write", "sales:*").
+/// El set inicial se crea en el seed a partir de DEFAULT_ROLE_PERMISSIONS (paquete shared).
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String?
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  roleId       String
+  role         Role      @relation(fields: [roleId], references: [id])
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  inventoryMovements InventoryMovement[]
+  purchases          Purchase[]
+  sales              Sale[]
+  cashRegisters      CashRegister[]
+  cashMovements      CashMovement[]
+  auditLogs          AuditLog[]
+
+  @@index([roleId])
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo: categorías, marcas, proveedores, clientes, productos
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  active      Boolean   @default(true)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("categories")
+}
+
+model Brand {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  active    Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("brands")
+}
+
+model Supplier {
+  id           String     @id @default(cuid())
+  businessName String
+  cuit         String?    @unique
+  phone        String?
+  email        String?
+  address      String?
+  contactName  String?
+  notes        String?
+  active       Boolean    @default(true)
+  products     Product[]
+  purchases    Purchase[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("suppliers")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  docNumber String?  @unique
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  active    Boolean  @default(true)
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("customers")
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  sku           String        @unique
+  barcode       String?       @unique
+  name          String
+  description   String?
+  imageUrl      String?
+  categoryId    String?
+  category      Category?     @relation(fields: [categoryId], references: [id])
+  brandId       String?
+  brand         Brand?        @relation(fields: [brandId], references: [id])
+  supplierId    String?
+  supplier      Supplier?     @relation(fields: [supplierId], references: [id])
+  purchasePrice Decimal       @default(0) @db.Decimal(12, 2)
+  salePrice     Decimal       @default(0) @db.Decimal(12, 2)
+  /// Cacheado y recalculado únicamente dentro de transacciones que también
+  /// insertan un InventoryMovement (ver InventoryService). Nunca se escribe directo.
+  currentStock  Int           @default(0)
+  minStock      Int           @default(0)
+  maxStock      Int?
+  unit          String        @default("unidad")
+  status        ProductStatus @default(ACTIVO)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  inventoryMovements InventoryMovement[]
+  purchaseItems      PurchaseItem[]
+  saleItems          SaleItem[]
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([supplierId])
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------------
+// Inventario
+// ---------------------------------------------------------------------------
+
+model InventoryMovement {
+  id             String         @id @default(cuid())
+  productId      String
+  product        Product        @relation(fields: [productId], references: [id])
+  type           MovementType
+  quantity       Int
+  previousStock  Int
+  resultingStock Int
+  reason         String?
+  referenceType  ReferenceType?
+  referenceId    String?
+  userId         String
+  user           User           @relation(fields: [userId], references: [id])
+  createdAt      DateTime       @default(now())
+
+  @@index([productId, createdAt])
+  @@map("inventory_movements")
+}
+
+// ---------------------------------------------------------------------------
+// Compras
+// ---------------------------------------------------------------------------
+
+model Purchase {
+  id         String         @id @default(cuid())
+  supplierId String
+  supplier   Supplier       @relation(fields: [supplierId], references: [id])
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  status     PurchaseStatus @default(PENDIENTE)
+  subtotal   Decimal        @default(0) @db.Decimal(12, 2)
+  discount   Decimal        @default(0) @db.Decimal(12, 2)
+  tax        Decimal        @default(0) @db.Decimal(12, 2)
+  total      Decimal        @default(0) @db.Decimal(12, 2)
+  items      PurchaseItem[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([supplierId])
+  @@index([createdAt])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String   @id @default(cuid())
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Decimal  @db.Decimal(12, 2)
+  subtotal   Decimal  @db.Decimal(12, 2)
+
+  @@index([purchaseId])
+  @@map("purchase_items")
+}
+
+// ---------------------------------------------------------------------------
+// Ventas
+// ---------------------------------------------------------------------------
+
+model Sale {
+  id             String        @id @default(cuid())
+  customerId     String?
+  customer       Customer?     @relation(fields: [customerId], references: [id])
+  userId         String
+  user           User          @relation(fields: [userId], references: [id])
+  cashRegisterId String?
+  cashRegister   CashRegister? @relation(fields: [cashRegisterId], references: [id])
+  status         SaleStatus    @default(COMPLETADA)
+  paymentMethod  PaymentMethod
+  subtotal       Decimal       @default(0) @db.Decimal(12, 2)
+  discount       Decimal       @default(0) @db.Decimal(12, 2)
+  tax            Decimal       @default(0) @db.Decimal(12, 2)
+  total          Decimal       @default(0) @db.Decimal(12, 2)
+  items          SaleItem[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([customerId])
+  @@index([cashRegisterId])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal @db.Decimal(12, 2)
+  subtotal  Decimal @db.Decimal(12, 2)
+
+  @@index([saleId])
+  @@map("sale_items")
+}
+
+// ---------------------------------------------------------------------------
+// Caja
+// ---------------------------------------------------------------------------
+
+model CashRegister {
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id])
+  status         CashRegisterStatus @default(ABIERTA)
+  openingAmount  Decimal            @db.Decimal(12, 2)
+  expectedAmount Decimal?           @db.Decimal(12, 2)
+  closingAmount  Decimal?           @db.Decimal(12, 2)
+  difference     Decimal?           @db.Decimal(12, 2)
+  notes          String?
+  openedAt       DateTime           @default(now())
+  closedAt       DateTime?
+
+  sales         Sale[]
+  cashMovements CashMovement[]
+
+  @@index([userId])
+  @@map("cash_registers")
+}
+
+model CashMovement {
+  id             String           @id @default(cuid())
+  cashRegisterId String
+  cashRegister   CashRegister     @relation(fields: [cashRegisterId], references: [id], onDelete: Cascade)
+  type           CashMovementType
+  amount         Decimal          @db.Decimal(12, 2)
+  description    String?
+  userId         String
+  user           User             @relation(fields: [userId], references: [id])
+  createdAt      DateTime         @default(now())
+
+  @@index([cashRegisterId])
+  @@map("cash_movements")
+}
+
+// ---------------------------------------------------------------------------
+// Auditoría y configuración del negocio
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+/// Fila única (singleton) con la configuración general del negocio.
+model BusinessConfig {
+  id                 String   @id @default(cuid())
+  businessName       String
+  currency           String   @default("ARS")
+  allowNegativeStock Boolean  @default(false)
+  defaultTaxRate     Decimal  @default(0) @db.Decimal(5, 2)
+  address            String?
+  phone              String?
+  logoUrl            String?
+  updatedAt          DateTime @updatedAt
+
+  @@map("business_config")
+}

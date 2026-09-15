@@ -1,0 +1,36 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+build/
+apps/web/dist/
+apps/api/dist/
+packages/shared/dist/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+apps/api/prisma/dev.db
+apps/api/generated/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Tests / coverage
+coverage/
+
+# Docker volumes locales
+docker/pgdata/
