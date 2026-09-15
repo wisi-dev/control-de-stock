@@ -117,7 +117,7 @@ Reglas de integridad ya modeladas en el schema:
 | 7 | Caja | ✅ Completa |
 | 8 | Dashboard y reportes | ✅ Completa |
 | 9 | Testing, seguridad, optimización | ✅ Completa |
-| 10 | Docker de producción, deployment, documentación final | Pendiente |
+| 10 | Docker de producción, deployment, documentación final | ✅ Completa (Docker sin verificar en este entorno — ver nota en README) |
 
 Al cerrar cada fase: se corren pruebas/typecheck, se revisan errores, se verifica la
 integración con lo ya construido, y se explica brevemente qué se agregó antes de pasar
@@ -305,3 +305,33 @@ Fase 2 (`logAudit`) — login, altas/bajas de usuarios, cambios de precio,
 ajustes de stock, compras, ventas, apertura/cierre de caja. Antes de esta
 fase se grababa pero no había forma de consultarlo; ahora tiene una pestaña
 propia en Usuarios y roles (solo Administrador).
+
+## 11. Fase 10 — Docker de producción y documentación final
+
+**Tres imágenes, no una sola**: `postgres` (oficial), `api` (Node/Express
+compilado) y `web` (build estático servido por Nginx, que además proxea
+`/api` al servicio `api` — el navegador solo le habla a un origen, sin CORS
+cross-origin en producción). Los `Dockerfile` de `apps/api` y `apps/web` se
+corren con el **contexto en la raíz del repo** (no en la carpeta de cada
+app) porque `npm ci` necesita `package-lock.json` del monorepo completo y
+`packages/shared` para poder compilarse — ver `docker-compose.prod.yml`,
+que pasa `context: ..` explícitamente por eso.
+
+**Migraciones en el entrypoint** (`prisma migrate deploy && node dist/server.js`):
+razonable para una sola instancia (el caso de una PyME); con múltiples
+réplicas del `api` habría que separar esto en un job de migración aparte
+para no correr la migración en paralelo desde cada contenedor.
+
+**Prisma genera el motor de consultas correcto solo si `generate` corre en
+el mismo entorno que va a ejecutarlo**: por eso el stage de build usa la
+misma base `node:20-alpine` que el stage final — así el binario nativo que
+Prisma descarga en el build ya es el de Linux/musl que necesita el
+contenedor de producción, sin fijar `binaryTargets` a mano en el schema.
+
+**Deuda declarada, no oculta**: esta máquina de desarrollo no tiene Docker
+instalado (decisión tomada explícitamente en la Fase 1 para evitar habilitar
+WSL2/virtualización solo para verificar el proyecto — se usó Postgres nativo
+en su lugar). Los archivos de Docker de esta fase están escritos siguiendo
+las convenciones estándar del ecosistema, pero **no se pudo correr
+`docker build`/`docker compose up` para verificarlos en este entorno**. Se
+documenta explícitamente en el README en vez de reportarlo como probado.

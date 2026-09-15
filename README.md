@@ -168,8 +168,52 @@ Todos bajo `/api`, requieren `Authorization: Bearer <token>` salvo `POST /auth/l
 | Reportes | `GET /reports/dashboard`, `/reports/sales-by-period`, `/reports/top-products`, `/reports/purchases-by-supplier`, `/reports/profit`, `/reports/payment-methods` (los dos primeros con `/export` para CSV) |
 | Auditoría | `GET /audit`, `GET /audit/filters` (solo Administrador) |
 
+## Despliegue en producción (Docker)
+
+Tres imágenes: `postgres` (oficial), `api` (Node + Express, compilado) y `web` (build
+estático de React servido por Nginx, que además hace de proxy a `/api`). Los
+Dockerfiles (`apps/api/Dockerfile`, `apps/web/Dockerfile`) se corren con el **contexto en
+la raíz del repo** porque necesitan `package-lock.json` y `packages/shared` del monorepo.
+
+1. Copiar y completar las variables de entorno de producción:
+
+   ```bash
+   cp .env.prod.example .env.prod
+   ```
+
+   Generar `JWT_SECRET` con `openssl rand -base64 48` y una contraseña fuerte para
+   `POSTGRES_PASSWORD`. Poner en `CORS_ORIGIN` el dominio real desde el que se va a
+   servir el frontend.
+
+2. Construir y levantar todo el stack:
+
+   ```bash
+   docker compose -f docker/docker-compose.prod.yml --env-file .env.prod up -d --build
+   ```
+
+   El contenedor de `api` corre `prisma migrate deploy` automáticamente antes de
+   arrancar el servidor, así que las migraciones quedan aplicadas en cada despliegue.
+
+3. La app queda en `http://localhost` (o el `WEB_PORT` que hayas configurado) y la API
+   en `http://localhost:4000` (`API_PORT`). Para cargar el seed inicial en producción
+   (solo la primera vez, con datos reales — no el catálogo demo):
+
+   ```bash
+   docker compose -f docker/docker-compose.prod.yml exec api npm run db:seed
+   ```
+
+   revisando antes `apps/api/prisma/seed.ts`, ya que tal como está pensado siembra
+   datos de ejemplo (útiles para una demo, no para arrancar un negocio real desde cero).
+
+> **Nota:** los Dockerfiles y el compose de producción se armaron siguiendo las
+> convenciones estándar de Docker/Node/Nginx para este tipo de stack, pero no pudieron
+> construirse ni levantarse en este entorno de desarrollo (no tiene Docker instalado —
+> ver decisión registrada al arrancar el proyecto). Antes de un despliegue real, correr
+> el `docker compose ... up --build` una vez en un entorno con Docker y confirmar que
+> los tres servicios levantan y la app responde en el navegador.
+
 ## Estado del proyecto
 
-**Fases 1 a 9 completas** (arquitectura, auth/roles, catálogo, inventario, compras,
-ventas/clientes, caja, dashboard/reportes, testing/seguridad — ver `docs/ARQUITECTURA.md`
-para el detalle de cada una). Pendiente: **Fase 10** (Docker de producción, deployment).
+**Fases 1 a 10 completas**: arquitectura, auth/roles, catálogo, inventario, compras,
+ventas/clientes, caja, dashboard/reportes, testing/seguridad, Docker de producción — ver
+`docs/ARQUITECTURA.md` para el detalle de cada una.

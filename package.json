@@ -24,7 +24,10 @@
     "prisma:studio": "npm run prisma:studio -w @control-stock/api",
     "db:seed": "npm run db:seed -w @control-stock/api",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
-    "docker:down": "docker compose -f docker/docker-compose.yml down"
+    "docker:down": "docker compose -f docker/docker-compose.yml down",
+    "docker:prod:up": "docker compose -f docker/docker-compose.prod.yml --env-file .env.prod up -d --build",
+    "docker:prod:down": "docker compose -f docker/docker-compose.prod.yml --env-file .env.prod down",
+    "test": "npm test -w @control-stock/api"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.18.0",
