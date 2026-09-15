@@ -14,7 +14,7 @@ type ProductWithRelations = Prisma.ProductGetPayload<{ include: typeof include }
  * `toJSON` de decimal.js) — sin esto, el frontend recibiría "1400.00" en vez
  * de 1400 y rompería cualquier `.toFixed()` o cálculo sobre el precio.
  */
-function serializeProduct(product: ProductWithRelations) {
+export function serializeProduct(product: ProductWithRelations) {
   return {
     ...product,
     purchasePrice: Number(product.purchasePrice),

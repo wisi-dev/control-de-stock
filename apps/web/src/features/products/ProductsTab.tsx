@@ -4,6 +4,7 @@ import {
   ArrowDown,
   ArrowUp,
   Download,
+  PackageSearch,
   Pencil,
   Plus,
   Search,
@@ -26,6 +27,7 @@ import {
 } from '../../services/products.service.js';
 import { toast } from '../../store/toastStore.js';
 import { usePermission } from '../../hooks/usePermission.js';
+import { MovementFormModal } from '../inventory/MovementFormModal.js';
 import { ProductFormModal } from './ProductFormModal.js';
 
 const statusOptions = [
@@ -43,6 +45,7 @@ const columns: { key: NonNullable<ProductListParams['sortBy']>; label: string }[
 
 export function ProductsTab() {
   const canManage = usePermission('products:*');
+  const canAdjustStock = usePermission('inventory:*');
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +57,7 @@ export function ProductsTab() {
     sortDir: 'asc',
   });
   const [editing, setEditing] = useState<Product | null | undefined>(undefined);
+  const [adjusting, setAdjusting] = useState<Product | null>(null);
 
   // Debounce simple de la búsqueda para no refetchear en cada tecla.
   useEffect(() => {
@@ -207,7 +211,9 @@ export function ProductsTab() {
                   ))}
                   <th className="px-5 py-3 font-medium">Categoría</th>
                   <th className="px-5 py-3 font-medium">Estado</th>
-                  {canManage && <th className="px-5 py-3 font-medium text-right">Acciones</th>}
+                  {(canManage || canAdjustStock) && (
+                    <th className="px-5 py-3 font-medium text-right">Acciones</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -239,17 +245,29 @@ export function ProductsTab() {
                         {product.status}
                       </Badge>
                     </td>
-                    {canManage && (
+                    {(canManage || canAdjustStock) && (
                       <td className="px-5 py-3">
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => setEditing(product)}
-                            aria-label="Editar producto"
-                            className="rounded-lg p-2 text-ink-muted hover:bg-slate-100"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
+                        <div className="flex justify-end gap-1">
+                          {canAdjustStock && (
+                            <button
+                              type="button"
+                              onClick={() => setAdjusting(product)}
+                              aria-label="Ajustar stock"
+                              className="rounded-lg p-2 text-ink-muted hover:bg-slate-100"
+                            >
+                              <PackageSearch className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canManage && (
+                            <button
+                              type="button"
+                              onClick={() => setEditing(product)}
+                              aria-label="Editar producto"
+                              className="rounded-lg p-2 text-ink-muted hover:bg-slate-100"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
@@ -288,6 +306,11 @@ export function ProductsTab() {
       )}
 
       <ProductFormModal open={editing !== undefined} product={editing ?? null} onClose={() => setEditing(undefined)} />
+      <MovementFormModal
+        open={adjusting !== null}
+        product={adjusting ?? undefined}
+        onClose={() => setAdjusting(null)}
+      />
     </div>
   );
 }

@@ -15,7 +15,8 @@ import { categoriesRouter } from './modules/categories/categories.routes.js';
 import { brandsRouter } from './modules/brands/brands.routes.js';
 import { suppliersRouter } from './modules/suppliers/suppliers.routes.js';
 import { productsRouter } from './modules/products/products.routes.js';
-// Los routers de los próximos módulos (inventory, purchases, sales, ...)
+import { inventoryRouter } from './modules/inventory/inventory.routes.js';
+// Los routers de los próximos módulos (purchases, sales, customers, ...)
 // se registran acá a medida que se implementan en las siguientes fases.
 
 export function createApp() {
@@ -57,8 +58,9 @@ export function createApp() {
   app.use('/api/brands', brandsRouter);
   app.use('/api/suppliers', suppliersRouter);
   app.use('/api/products', productsRouter);
-  // Próximos módulos: inventory, purchases, sales, customers, cashregister,
-  // reports, audit.
+  app.use('/api/inventory', inventoryRouter);
+  // Próximos módulos: purchases, sales, customers, cashregister, reports,
+  // audit.
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -111,7 +111,7 @@ Reglas de integridad ya modeladas en el schema:
 | 1 | Arquitectura, monorepo, base de datos, configuración inicial | ✅ Completa |
 | 2 | Autenticación (JWT), usuarios, roles y permisos | ✅ Completa |
 | 3 | Productos, categorías, marcas, proveedores | ✅ Completa |
-| 4 | Inventario, movimientos, alertas de stock | Pendiente |
+| 4 | Inventario, movimientos, alertas de stock | ✅ Completa |
 | 5 | Compras | Pendiente |
 | 6 | Ventas | Pendiente |
 | 7 | Clientes y caja | Pendiente |

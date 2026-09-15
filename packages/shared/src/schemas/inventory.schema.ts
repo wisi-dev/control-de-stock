@@ -8,3 +8,11 @@ export const createMovementSchema = z.object({
   reason: z.string().max(500).nullish(),
 });
 export type CreateMovementInput = z.infer<typeof createMovementSchema>;
+
+export const movementListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  productId: z.string().optional(),
+  type: z.nativeEnum(MovementType).optional(),
+});
+export type MovementListQuery = z.infer<typeof movementListQuerySchema>;
