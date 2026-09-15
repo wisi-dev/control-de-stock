@@ -122,3 +122,13 @@ Reglas de integridad ya modeladas en el schema:
 Al cerrar cada fase: se corren pruebas/typecheck, se revisan errores, se verifica la
 integración con lo ya construido, y se explica brevemente qué se agregó antes de pasar
 a la siguiente.
+
+## 4. Deuda técnica conocida (a revisar en Fase 9)
+
+`npm audit` reporta vulnerabilidades en `vite`/`esbuild` (moderate/high, servidor de
+desarrollo) y `vitest` (critical, solo se ejecuta en tests) y `react-router-dom`
+(moderate, open redirect). Las tres requieren un bump de versión mayor (Vite 5→8,
+Vitest 2→5, React Router 6→7) que puede romper APIs ya usadas en el código — no se
+aplica en Fase 1 para no mezclar una migración mayor no planeada con la verificación
+de arquitectura. Se resuelve en Fase 9 (testing/seguridad) con el tiempo para migrar y
+probar cada breaking change correctamente.
