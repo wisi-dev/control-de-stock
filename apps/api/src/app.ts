@@ -21,8 +21,7 @@ import { customersRouter } from './modules/customers/customers.routes.js';
 import { salesRouter } from './modules/sales/sales.routes.js';
 import { cashRegisterRouter } from './modules/cashregister/cashregister.routes.js';
 import { reportsRouter } from './modules/reports/reports.routes.js';
-// El router de auditoría (audit) se registra acá cuando se implemente en
-// la Fase 9.
+import { auditRouter } from './modules/audit/audit.routes.js';
 
 export function createApp() {
   const app = express();
@@ -69,7 +68,7 @@ export function createApp() {
   app.use('/api/sales', salesRouter);
   app.use('/api/cashregister', cashRegisterRouter);
   app.use('/api/reports', reportsRouter);
-  // Próximo módulo: audit (Fase 9).
+  app.use('/api/audit', auditRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

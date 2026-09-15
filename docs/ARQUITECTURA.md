@@ -116,7 +116,7 @@ Reglas de integridad ya modeladas en el schema:
 | 6 | Ventas (+ Clientes, adelantado desde la Fase 7 por dependencia directa) | ✅ Completa |
 | 7 | Caja | ✅ Completa |
 | 8 | Dashboard y reportes | ✅ Completa |
-| 9 | Testing, seguridad, optimización | Pendiente |
+| 9 | Testing, seguridad, optimización | ✅ Completa |
 | 10 | Docker de producción, deployment, documentación final | Pendiente |
 
 Al cerrar cada fase: se corren pruebas/typecheck, se revisan errores, se verifica la
@@ -264,12 +264,44 @@ Fase 3) para ventas por período y productos más/menos vendidos; el stock
 actual reutiliza el export de Productos de la Fase 3 y los movimientos de
 inventario suman un endpoint de export propio en el módulo de Inventario.
 
-## 10. Deuda técnica conocida (a revisar en Fase 9)
+## 10. Fase 9 — Testing, seguridad y optimización
 
-`npm audit` reporta vulnerabilidades en `vite`/`esbuild` (moderate/high, servidor de
-desarrollo) y `vitest` (critical, solo se ejecuta en tests) y `react-router-dom`
-(moderate, open redirect). Las tres requieren un bump de versión mayor (Vite 5→8,
-Vitest 2→5, React Router 6→7) que puede romper APIs ya usadas en el código — no se
-aplica en Fase 1 para no mezclar una migración mayor no planeada con la verificación
-de arquitectura. Se resuelve en Fase 9 (testing/seguridad) con el tiempo para migrar y
-probar cada breaking change correctamente.
+**Deuda técnica de la Fase 1, resuelta**: los 7 hallazgos de `npm audit`
+(`vite`/`esbuild`, `vitest`, `react-router-dom`) requerían saltos de versión
+mayor. Se migró Vite 5→8, Vitest 2→5 y React Router 6→7 (más `@types/node`
+20→22, requisito de peer dependency de Vitest 5) — `npm audit` corre en 0
+vulnerabilidades. Router v7 no tocó ninguna API usada (`BrowserRouter`,
+`Routes`, `Route`, `Outlet`, `Navigate`, `NavLink`, `useNavigate`: idénticas
+en modo declarativo), verificado navegando la app real después del cambio.
+
+**Tests de integración reales, contra Postgres — no mocks.** `apps/api` corre
+con una base de datos separada (`control_de_stock_test`, ver
+`.env.test.example`); `src/test/setup.ts` corta la ejecución si `DATABASE_URL`
+no incluye `_test` en el nombre, así nunca se puede truncar por accidente la
+base de desarrollo (probado explícitamente: correr los tests con la
+`DATABASE_URL` de dev falla antes de tocar una tabla). Cada suite vacía las
+tablas relevantes en `beforeEach` (`resetDb()` en `src/test/helpers.ts`) para
+no depender del orden de ejecución.
+
+Casos cubiertos — los mismos ejemplos numéricos del brief:
+- Stock 10, venta 3 → stock 7; stock 10, compra recibida de 5 → 15.
+- Total de venta/compra = `subtotal - descuento + impuesto`, siempre
+  recalculado en el servidor.
+- El precio de una venta es siempre `Product.salePrice` del servidor, nunca
+  un valor mandado por el cliente (se prueba pasando un `unitPrice` falso a
+  propósito y verificando que no se usa).
+- Stock insuficiente rechaza la operación sin dejar cambios a medias (todo o
+  nada) — y se puede permitir explícitamente vía `allowNegativeStock`.
+  Cancelar una venta devuelve el stock; no se puede cancelar/recibir dos
+  veces la misma operación.
+- Login: contraseña correcta vs. incorrecta vs. usuario inexistente vs.
+  usuario desactivado — los tres últimos devuelven el mismo tipo de error,
+  sin distinguir "no existe" de "contraseña mal" (anti-enumeración).
+- `hasPermission` (wildcard `*`, `<recurso>:*`, permisos exactos y ausentes).
+
+**Módulo de auditoría (sección 22 del brief), pendiente desde la Fase 1**:
+`GET /api/audit` expone lo que cada service ya venía grabando desde la
+Fase 2 (`logAudit`) — login, altas/bajas de usuarios, cambios de precio,
+ajustes de stock, compras, ventas, apertura/cierre de caja. Antes de esta
+fase se grababa pero no había forma de consultarlo; ahora tiene una pestaña
+propia en Usuarios y roles (solo Administrador).

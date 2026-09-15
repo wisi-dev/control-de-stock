@@ -3,14 +3,14 @@
 Sistema profesional de gestión de stock para pequeñas y medianas empresas: productos,
 inventario, compras, ventas, clientes, proveedores, caja, reportes, usuarios y roles.
 
-Este README se completa fase a fase (ver `docs/ARQUITECTURA.md` para las decisiones
-técnicas y el plan completo de fases). Lo que sigue es válido a partir de la Fase 1.
+Ver `docs/ARQUITECTURA.md` para las decisiones técnicas y el detalle de cada fase.
 
 ## Stack
 
-- **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS + React Router + TanStack Query
+- **Frontend:** React 18 + TypeScript + Vite 8 + Tailwind CSS + React Router 7 + TanStack Query
 - **Backend:** Node.js + TypeScript + Express, arquitectura modular (routes → controller → service)
 - **Base de datos:** PostgreSQL + Prisma ORM
+- **Testing:** Vitest, tests de integración contra una base de datos Postgres real y separada
 - **Infraestructura:** Docker Compose (Postgres + Adminer) para desarrollo local
 - **Monorepo:** npm workspaces (`apps/api`, `apps/web`, `packages/shared`)
 
@@ -23,15 +23,17 @@ control-de-stock/
 │   │   ├── prisma/       # schema.prisma, migraciones, seed
 │   │   └── src/
 │   │       ├── config/       # validación de variables de entorno
-│   │       ├── lib/          # prisma client, logger
+│   │       ├── lib/          # prisma client, logger, jwt
 │   │       ├── common/       # errores, middlewares, utils compartidos
+│   │       ├── test/         # helpers de tests de integración
 │   │       └── modules/      # un módulo por dominio de negocio (ver src/modules/README.md)
 │   └── web/               # Frontend React + Vite
 │       └── src/
-│           ├── app/           # router, providers globales
+│           ├── app/           # router, providers globales, RequireAuth
 │           ├── components/    # layout/ y ui/ (componentes reutilizables)
+│           ├── features/      # lógica de UI por módulo de negocio
 │           ├── pages/         # páginas por ruta
-│           ├── services/      # cliente HTTP
+│           ├── services/      # cliente HTTP por módulo
 │           ├── hooks/, lib/, store/
 ├── packages/
 │   └── shared/            # tipos y schemas Zod compartidos entre api y web
@@ -80,7 +82,7 @@ control-de-stock/
    npm run prisma:migrate -- --name init
    ```
 
-5. **Cargar datos de ejemplo** (roles, permisos y un usuario por rol):
+5. **Cargar datos de ejemplo** (roles, permisos, usuarios, catálogo y clientes demo):
 
    ```bash
    npm run db:seed
@@ -101,6 +103,36 @@ control-de-stock/
    npm run dev:web    # http://localhost:5173
    ```
 
+## Correr los tests
+
+Los tests de `apps/api` son de integración: corren contra una base Postgres real,
+separada de la de desarrollo (nunca se mockea Prisma). Antes de la primera corrida:
+
+```bash
+cp apps/api/.env.test.example apps/api/.env.test
+```
+
+Editar `DATABASE_URL` en `apps/api/.env.test` apuntando a una base **distinta** a la de
+desarrollo (por convención, con `_test` en el nombre — el setup de tests lo verifica y
+corta la ejecución si no lo encuentra, para no truncar datos reales por error). Crear esa
+base y migrarla una vez:
+
+```bash
+createdb control_de_stock_test   # o el comando equivalente de tu gestor de Postgres
+cd apps/api
+DATABASE_URL="<la de .env.test>" npx prisma migrate deploy
+```
+
+Y correr los tests:
+
+```bash
+npm test -w @control-stock/api
+```
+
+Cubren los cálculos y reglas de negocio críticas: stock (entradas/salidas/ajustes,
+límite de stock negativo), ventas y compras (totales, precio siempre del servidor,
+anular/recibir), login y permisos.
+
 ## Scripts útiles
 
 | Comando | Qué hace |
@@ -108,22 +140,36 @@ control-de-stock/
 | `npm run dev:api` / `npm run dev:web` | Levanta backend / frontend en modo desarrollo |
 | `npm run build` | Compila `shared`, `api` y `web` en orden |
 | `npm run lint` | Lint de todo el monorepo |
+| `npm test -w @control-stock/api` | Corre los tests de integración del backend |
 | `npm run prisma:studio` | Abre Prisma Studio para inspeccionar la base de datos |
 | `npm run prisma:migrate -- --name <nombre>` | Crea y aplica una migración |
 | `npm run db:seed` | Vuelve a correr el seed |
 | `npm run docker:up` / `npm run docker:down` | Levanta / baja Postgres y Adminer |
 
+## Endpoints principales
+
+Todos bajo `/api`, requieren `Authorization: Bearer <token>` salvo `POST /auth/login` y
+`GET /health`. Respuestas siempre `{ success: true, data }` o `{ success: false, error }`.
+
+| Recurso | Endpoints |
+|---|---|
+| Auth | `POST /auth/login`, `GET /auth/me` |
+| Usuarios | `GET/POST /users`, `GET/PUT /users/:id`, `PUT /users/:id/password` |
+| Roles | `GET /roles`, `GET /roles/permissions/catalog`, `PUT /roles/:id/permissions` |
+| Configuración | `GET/PUT /settings` |
+| Categorías / Marcas | `GET/POST /categories`, `PUT /categories/:id` (igual para `/brands`) |
+| Proveedores | `GET/POST /suppliers`, `GET/PUT /suppliers/:id` |
+| Productos | `GET/POST /products`, `GET/PUT /products/:id`, `GET /products/export`, `POST /products/import` |
+| Inventario | `GET /inventory/movements`, `POST /inventory/movements`, `GET /inventory/alerts`, `GET /inventory/movements/export` |
+| Compras | `GET/POST /purchases`, `GET /purchases/:id`, `PUT /purchases/:id/receive`, `PUT /purchases/:id/cancel` |
+| Clientes | `GET/POST /customers`, `GET/PUT /customers/:id` |
+| Ventas | `GET/POST /sales`, `GET /sales/:id`, `PUT /sales/:id/cancel` |
+| Caja | `GET /cashregister/current`, `GET /cashregister/history`, `POST /cashregister/open`, `PUT /cashregister/:id/close`, `POST /cashregister/:id/movements` |
+| Reportes | `GET /reports/dashboard`, `/reports/sales-by-period`, `/reports/top-products`, `/reports/purchases-by-supplier`, `/reports/profit`, `/reports/payment-methods` (los dos primeros con `/export` para CSV) |
+| Auditoría | `GET /audit`, `GET /audit/filters` (solo Administrador) |
+
 ## Estado del proyecto
 
-El desarrollo avanza por fases (ver `docs/ARQUITECTURA.md`).
-
-- **Fase 1 completa:** arquitectura, monorepo, schema de base de datos completo,
-  configuración inicial, layout de la app y navegación.
-- **Fase 2 completa:** login JWT, ABM de usuarios, roles y permisos configurables por
-  módulo, configuración general del negocio. Los módulos en placeholder (Productos,
-  Inventario, Compras, Ventas, Clientes, Proveedores, Caja, Reportes) se construyen en
-  las fases siguientes.
-
-Las fases siguientes (productos, inventario, compras, ventas, clientes, caja,
-dashboard/reportes, testing/seguridad, Docker de producción) se documentan y construyen
-una por una.
+**Fases 1 a 9 completas** (arquitectura, auth/roles, catálogo, inventario, compras,
+ventas/clientes, caja, dashboard/reportes, testing/seguridad — ver `docs/ARQUITECTURA.md`
+para el detalle de cada una). Pendiente: **Fase 10** (Docker de producción, deployment).

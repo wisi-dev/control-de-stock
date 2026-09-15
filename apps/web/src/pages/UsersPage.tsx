@@ -4,10 +4,12 @@ import { cn } from '../lib/utils.js';
 import { usePermission } from '../hooks/usePermission.js';
 import { UsersTab } from '../features/users/UsersTab.js';
 import { RolesTab } from '../features/users/RolesTab.js';
+import { AuditLogTab } from '../features/users/AuditLogTab.js';
 
 const tabs = [
   { key: 'usuarios', label: 'Usuarios' },
   { key: 'roles', label: 'Roles y permisos' },
+  { key: 'auditoria', label: 'Auditoría' },
 ] as const;
 
 type TabKey = (typeof tabs)[number]['key'];
@@ -45,7 +47,9 @@ export function UsersPage() {
         ))}
       </div>
 
-      {tab === 'usuarios' ? <UsersTab /> : <RolesTab />}
+      {tab === 'usuarios' && <UsersTab />}
+      {tab === 'roles' && <RolesTab />}
+      {tab === 'auditoria' && <AuditLogTab />}
     </div>
   );
 }
