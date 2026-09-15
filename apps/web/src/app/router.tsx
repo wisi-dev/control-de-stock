@@ -9,11 +9,13 @@ import { ProductsPage } from '../pages/ProductsPage.js';
 import { SuppliersPage } from '../pages/SuppliersPage.js';
 import { InventoryPage } from '../pages/InventoryPage.js';
 import { PurchasesPage } from '../pages/PurchasesPage.js';
+import { SalesPage } from '../pages/SalesPage.js';
+import { CustomersPage } from '../pages/CustomersPage.js';
 import { RequireAuth } from './RequireAuth.js';
 
 /**
  * Mapa de rutas del sistema. Los módulos que todavía no se implementaron
- * (ver Fases 6 a 8) muestran un placeholder con su nombre y la fase en la
+ * (ver Fases 7 y 8) muestran un placeholder con su nombre y la fase en la
  * que se van a construir, para que la navegación completa sea visible desde
  * la Fase 1 sin fingir funcionalidad que todavía no existe. Todo lo que no
  * sea /login pasa por `RequireAuth`.
@@ -30,11 +32,8 @@ export function AppRouter() {
           <Route path="/productos" element={<ProductsPage />} />
           <Route path="/inventario" element={<InventoryPage />} />
           <Route path="/compras" element={<PurchasesPage />} />
-          <Route path="/ventas" element={<PlaceholderPage title="Ventas" phase="Fase 6" />} />
-          <Route
-            path="/clientes"
-            element={<PlaceholderPage title="Clientes" phase="Fase 7" />}
-          />
+          <Route path="/ventas" element={<SalesPage />} />
+          <Route path="/clientes" element={<CustomersPage />} />
           <Route path="/proveedores" element={<SuppliersPage />} />
           <Route path="/caja" element={<PlaceholderPage title="Caja" phase="Fase 7" />} />
           <Route

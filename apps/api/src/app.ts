@@ -17,8 +17,10 @@ import { suppliersRouter } from './modules/suppliers/suppliers.routes.js';
 import { productsRouter } from './modules/products/products.routes.js';
 import { inventoryRouter } from './modules/inventory/inventory.routes.js';
 import { purchasesRouter } from './modules/purchases/purchases.routes.js';
-// Los routers de los próximos módulos (sales, customers, cashregister, ...)
-// se registran acá a medida que se implementan en las siguientes fases.
+import { customersRouter } from './modules/customers/customers.routes.js';
+import { salesRouter } from './modules/sales/sales.routes.js';
+// Los routers de los próximos módulos (cashregister, reports, audit) se
+// registran acá a medida que se implementan en las siguientes fases.
 
 export function createApp() {
   const app = express();
@@ -61,7 +63,9 @@ export function createApp() {
   app.use('/api/products', productsRouter);
   app.use('/api/inventory', inventoryRouter);
   app.use('/api/purchases', purchasesRouter);
-  // Próximos módulos: sales, customers, cashregister, reports, audit.
+  app.use('/api/customers', customersRouter);
+  app.use('/api/sales', salesRouter);
+  // Próximos módulos: cashregister, reports, audit.
 
   app.use(notFoundHandler);
   app.use(errorHandler);

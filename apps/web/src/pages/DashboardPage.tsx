@@ -5,14 +5,15 @@ import { Card, CardContent, CardHeader } from '../components/ui/Card.js';
 import { EmptyState } from '../components/ui/EmptyState.js';
 import { fetchProducts } from '../services/products.service.js';
 import { fetchSuppliers } from '../services/suppliers.service.js';
+import { fetchCustomers } from '../services/customers.service.js';
 import { fetchAlerts, fetchMovements } from '../services/inventory.service.js';
 
 /**
  * Dashboard con la estructura final de KPIs, alertas y actividad reciente
- * (sección 4 del brief). Productos/Stock/Proveedores ya usan datos reales
- * (Fases 3-4); Ventas del día/mes y Total de clientes quedan en $0/0 hasta
- * que existan Ventas y Clientes (Fases 6-7) — mostrar un número simulado
- * ahí sería peor que mostrar el estado real.
+ * (sección 4 del brief). Productos/Stock/Proveedores/Clientes ya usan datos
+ * reales (Fases 3-6). Ventas del día/mes y "recientes" quedan pendientes de
+ * la Fase 8, que agrega endpoints de agregación propios (`/api/reports/*`)
+ * en vez de calcular sumas de ventas en el cliente.
  */
 export function DashboardPage() {
   const productsQuery = useQuery({
@@ -20,6 +21,7 @@ export function DashboardPage() {
     queryFn: () => fetchProducts({ pageSize: 1 }),
   });
   const suppliersQuery = useQuery({ queryKey: ['suppliers'], queryFn: fetchSuppliers });
+  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: fetchCustomers });
   const alertsQuery = useQuery({ queryKey: ['inventory', 'alerts'], queryFn: fetchAlerts });
   const movementsQuery = useQuery({
     queryKey: ['inventory', 'movements', 'dashboard-recent'],
@@ -41,7 +43,7 @@ export function DashboardPage() {
         <StatCard label="Ventas del día" value="$0" icon={DollarSign} />
         <StatCard label="Ventas del mes" value="$0" icon={DollarSign} />
         <StatCard label="Productos registrados" value={String(productsQuery.data?.total ?? '—')} icon={Boxes} />
-        <StatCard label="Total de clientes" value="0" icon={Users} />
+        <StatCard label="Total de clientes" value={String(customersQuery.data?.length ?? '—')} icon={Users} />
         <StatCard
           label="Stock bajo"
           value={String(lowStockCount)}

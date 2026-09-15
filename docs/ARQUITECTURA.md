@@ -113,8 +113,8 @@ Reglas de integridad ya modeladas en el schema:
 | 3 | Productos, categorías, marcas, proveedores | ✅ Completa |
 | 4 | Inventario, movimientos, alertas de stock | ✅ Completa |
 | 5 | Compras | ✅ Completa |
-| 6 | Ventas | Pendiente |
-| 7 | Clientes y caja | Pendiente |
+| 6 | Ventas (+ Clientes, adelantado desde la Fase 7 por dependencia directa) | ✅ Completa |
+| 7 | Caja | Pendiente |
 | 8 | Dashboard y reportes | Pendiente |
 | 9 | Testing, seguridad, optimización | Pendiente |
 | 10 | Docker de producción, deployment, documentación final | Pendiente |
@@ -192,7 +192,33 @@ o cancelada ya no cambia de estado (probado explícitamente contra la API).
 nunca se confía en un total que mande el cliente, ni siquiera para mostrarlo,
 para que un frontend desactualizado no pueda inflar o pisar un monto.
 
-## 7. Deuda técnica conocida (a revisar en Fase 9)
+## 7. Fase 6 — Ventas y Clientes
+
+**Clientes se adelantó desde la Fase 7**: el checkout de una venta necesita
+elegir un cliente (sección 19 del brief), así que no tenía sentido dejar el
+selector sin datos reales hasta la fase siguiente. Caja queda como el único
+contenido real de la Fase 7.
+
+**El precio de venta nunca lo manda el cliente** (a diferencia de una compra,
+donde el precio pactado con el proveedor sí es un dato de entrada legítimo):
+`createSaleSchema` solo acepta `productId` y `quantity` por ítem — el backend
+siempre toma `Product.salePrice` vigente al confirmar. Evita que alguien
+manipule el `POST /api/sales` para vender a $0.
+
+**Anular una venta devuelve stock** con un movimiento `DEVOLUCION` (no al
+revés de `VENTA`, para que quede clara la distinción en el historial: una
+`VENTA` es la salida original, una `DEVOLUCION` es cualquier reingreso —
+anulación o cambio de un cliente). Solo se puede anular una venta
+`COMPLETADA`; una vez `ANULADA` no cambia de estado. Igual lógica de
+transacción que Compras: movimiento + `currentStock` juntos o ninguno de los dos.
+
+**Carrito de venta sin componente de tabla genérico**: al ser la única
+pantalla con "buscar → agregar → ver carrito → confirmar" de todo el sistema,
+se armó a medida (`SalesCart.tsx`) en vez de forzarla a los patrones de
+tabla+modal del resto de los módulos — coincide con la sección 19 del brief
+("la menor cantidad de clics posible").
+
+## 8. Deuda técnica conocida (a revisar en Fase 9)
 
 `npm audit` reporta vulnerabilidades en `vite`/`esbuild` (moderate/high, servidor de
 desarrollo) y `vitest` (critical, solo se ejecuta en tests) y `react-router-dom`

@@ -152,6 +152,17 @@ async function main() {
     }
   }
 
+  console.log('🧑‍🤝‍🧑 Sembrando clientes...');
+  const customerData = [
+    { firstName: 'Rosa', lastName: 'Gimenez', docNumber: '25111222', phone: '11-5555-1111' },
+    { firstName: 'Hector', lastName: 'Paredes', docNumber: '30222333', phone: '11-5555-2222' },
+    { firstName: 'Noelia', lastName: 'Suarez', docNumber: '35444555', phone: '11-5555-3333' },
+  ];
+  for (const data of customerData) {
+    const existing = await prisma.customer.findFirst({ where: { docNumber: data.docNumber } });
+    if (!existing) await prisma.customer.create({ data });
+  }
+
   console.log('✅ Seed completo. Logins de prueba:');
   for (const demoUser of demoUsers) {
     console.log(`   ${demoUser.role} -> ${demoUser.email} / ${demoUser.password}`);
