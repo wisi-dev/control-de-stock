@@ -114,7 +114,7 @@ Reglas de integridad ya modeladas en el schema:
 | 4 | Inventario, movimientos, alertas de stock | ✅ Completa |
 | 5 | Compras | ✅ Completa |
 | 6 | Ventas (+ Clientes, adelantado desde la Fase 7 por dependencia directa) | ✅ Completa |
-| 7 | Caja | Pendiente |
+| 7 | Caja | ✅ Completa |
 | 8 | Dashboard y reportes | Pendiente |
 | 9 | Testing, seguridad, optimización | Pendiente |
 | 10 | Docker de producción, deployment, documentación final | Pendiente |
@@ -218,7 +218,25 @@ se armó a medida (`SalesCart.tsx`) en vez de forzarla a los patrones de
 tabla+modal del resto de los módulos — coincide con la sección 19 del brief
 ("la menor cantidad de clics posible").
 
-## 8. Deuda técnica conocida (a revisar en Fase 9)
+## 8. Fase 7 — Caja
+
+**Ventas y Caja quedaron acopladas, no al revés**: `sales.service.ts` busca
+si hay una caja `ABIERTA` al confirmar una venta y, si la hay, asocia
+`Sale.cashRegisterId` y — solo si el pago fue en `EFECTIVO` — crea un
+`CashMovement` de tipo `VENTA`. Ventas por transferencia/tarjeta quedan
+igual asociadas a la caja del turno (para reportes por método de pago en la
+Fase 8) pero no mueven el efectivo físico. Anular una venta en efectivo con
+la caja todavía abierta genera un `EGRESO` compensatorio, para que "caja
+esperada" nunca quede desincronizada de lo que realmente pasó.
+
+**Fórmula de caja esperada** = inicial + ingresos + ventas en efectivo −
+egresos, calculada en el backend recién al cerrar (`close`) y en el frontend
+en tiempo real mientras está abierta (mismos números, misma fórmula, para que
+el usuario vea la diferencia antes de confirmar el cierre). Solo puede haber
+una caja `ABIERTA` a la vez (`open` rechaza si ya existe una) y una caja
+`CERRADA` no vuelve a cambiar de estado.
+
+## 9. Deuda técnica conocida (a revisar en Fase 9)
 
 `npm audit` reporta vulnerabilidades en `vite`/`esbuild` (moderate/high, servidor de
 desarrollo) y `vitest` (critical, solo se ejecuta en tests) y `react-router-dom`

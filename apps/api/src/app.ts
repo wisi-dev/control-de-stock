@@ -19,8 +19,9 @@ import { inventoryRouter } from './modules/inventory/inventory.routes.js';
 import { purchasesRouter } from './modules/purchases/purchases.routes.js';
 import { customersRouter } from './modules/customers/customers.routes.js';
 import { salesRouter } from './modules/sales/sales.routes.js';
-// Los routers de los próximos módulos (cashregister, reports, audit) se
-// registran acá a medida que se implementan en las siguientes fases.
+import { cashRegisterRouter } from './modules/cashregister/cashregister.routes.js';
+// Los routers de los próximos módulos (reports, audit) se registran acá a
+// medida que se implementan en las siguientes fases.
 
 export function createApp() {
   const app = express();
@@ -65,7 +66,8 @@ export function createApp() {
   app.use('/api/purchases', purchasesRouter);
   app.use('/api/customers', customersRouter);
   app.use('/api/sales', salesRouter);
-  // Próximos módulos: cashregister, reports, audit.
+  app.use('/api/cashregister', cashRegisterRouter);
+  // Próximos módulos: reports, audit.
 
   app.use(notFoundHandler);
   app.use(errorHandler);

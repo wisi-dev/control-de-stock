@@ -1,4 +1,4 @@
-import { MovementType, Prisma, ReferenceType, SaleStatus } from '@prisma/client';
+import { CashMovementType, CashRegisterStatus, MovementType, PaymentMethod, Prisma, ReferenceType, SaleStatus } from '@prisma/client';
 import type { CreateSaleInput, SaleListQuery } from '@control-stock/shared';
 import { prisma } from '../../lib/prisma.js';
 import { BusinessRuleError, NotFoundError } from '../../common/errors/AppError.js';
@@ -96,11 +96,17 @@ export async function create(input: CreateSaleInput, actorId: string) {
   const subtotal = itemsData.reduce((sum, i) => sum + i.subtotal, 0);
   const total = Math.max(0, subtotal - input.discount + input.tax);
 
+  // Si hay una caja abierta, la venta queda asociada (para reportes por método
+  // de pago); solo las ventas en efectivo generan un movimiento de caja, ya
+  // que son las únicas que cambian el efectivo físico en el cajón.
+  const openRegister = await prisma.cashRegister.findFirst({ where: { status: CashRegisterStatus.ABIERTA } });
+
   const sale = await prisma.$transaction(async (tx) => {
     const created = await tx.sale.create({
       data: {
         customerId: input.customerId ?? null,
         userId: actorId,
+        cashRegisterId: openRegister?.id ?? null,
         status: SaleStatus.COMPLETADA,
         paymentMethod: input.paymentMethod,
         subtotal,
@@ -111,6 +117,18 @@ export async function create(input: CreateSaleInput, actorId: string) {
       },
       include,
     });
+
+    if (openRegister && input.paymentMethod === PaymentMethod.EFECTIVO) {
+      await tx.cashMovement.create({
+        data: {
+          cashRegisterId: openRegister.id,
+          type: CashMovementType.VENTA,
+          amount: total,
+          description: `Venta #${created.id.slice(-8)}`,
+          userId: actorId,
+        },
+      });
+    }
 
     for (const item of itemsData) {
       const product = productMap.get(item.productId)!;
@@ -174,6 +192,21 @@ export async function cancel(id: string, actorId: string) {
       });
 
       await tx.product.update({ where: { id: item.productId }, data: { currentStock: resultingStock } });
+    }
+
+    if (sale.cashRegisterId && sale.paymentMethod === PaymentMethod.EFECTIVO) {
+      const register = await tx.cashRegister.findUnique({ where: { id: sale.cashRegisterId } });
+      if (register?.status === CashRegisterStatus.ABIERTA) {
+        await tx.cashMovement.create({
+          data: {
+            cashRegisterId: sale.cashRegisterId,
+            type: CashMovementType.EGRESO,
+            amount: sale.total,
+            description: `Anulación de venta #${sale.id.slice(-8)}`,
+            userId: actorId,
+          },
+        });
+      }
     }
 
     await tx.sale.update({ where: { id }, data: { status: SaleStatus.ANULADA } });

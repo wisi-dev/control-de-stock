@@ -14,3 +14,4 @@ export * from './schemas/inventory.schema.js';
 export * from './schemas/purchase.schema.js';
 export * from './schemas/customer.schema.js';
 export * from './schemas/sale.schema.js';
+export * from './schemas/cashregister.schema.js';
