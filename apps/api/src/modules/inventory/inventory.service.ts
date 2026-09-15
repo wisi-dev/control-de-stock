@@ -4,6 +4,7 @@ import type { CreateMovementInput, MovementListQuery } from '@control-stock/shar
 import { prisma } from '../../lib/prisma.js';
 import { BusinessRuleError, NotFoundError, ValidationError } from '../../common/errors/AppError.js';
 import { logAudit } from '../../common/utils/audit.js';
+import { toCsv } from '../../common/utils/csv.js';
 import { serializeProduct } from '../products/products.service.js';
 
 /**
@@ -49,6 +50,33 @@ export async function listMovements(query: MovementListQuery) {
     total,
     totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
   };
+}
+
+export async function exportMovementsCsv(query: Pick<MovementListQuery, 'productId' | 'type'>) {
+  const where: Prisma.InventoryMovementWhereInput = {
+    ...(query.productId ? { productId: query.productId } : {}),
+    ...(query.type ? { type: query.type } : {}),
+  };
+  const movements = await prisma.inventoryMovement.findMany({
+    where,
+    include: movementInclude,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return toCsv([
+    ['fecha', 'producto', 'sku', 'tipo', 'cantidad', 'stock_anterior', 'stock_final', 'usuario', 'motivo'],
+    ...movements.map((m) => [
+      m.createdAt.toISOString(),
+      m.product.name,
+      m.product.sku,
+      m.type,
+      m.quantity,
+      m.previousStock,
+      m.resultingStock,
+      m.user.name,
+      m.reason ?? '',
+    ]),
+  ]);
 }
 
 /**

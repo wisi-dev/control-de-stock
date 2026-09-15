@@ -16,3 +16,11 @@ export async function createMovement(req: Request, res: Response) {
 export async function getAlerts(_req: Request, res: Response) {
   res.json({ success: true, data: await inventoryService.getAlerts() });
 }
+
+export async function exportMovements(req: Request, res: Response) {
+  const query = movementListQuerySchema.parse(req.query);
+  const csv = await inventoryService.exportMovementsCsv(query);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="movimientos_inventario.csv"');
+  res.send(csv);
+}

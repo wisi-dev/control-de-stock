@@ -115,7 +115,7 @@ Reglas de integridad ya modeladas en el schema:
 | 5 | Compras | ✅ Completa |
 | 6 | Ventas (+ Clientes, adelantado desde la Fase 7 por dependencia directa) | ✅ Completa |
 | 7 | Caja | ✅ Completa |
-| 8 | Dashboard y reportes | Pendiente |
+| 8 | Dashboard y reportes | ✅ Completa |
 | 9 | Testing, seguridad, optimización | Pendiente |
 | 10 | Docker de producción, deployment, documentación final | Pendiente |
 
@@ -236,7 +236,35 @@ el usuario vea la diferencia antes de confirmar el cierre). Solo puede haber
 una caja `ABIERTA` a la vez (`open` rechaza si ya existe una) y una caja
 `CERRADA` no vuelve a cambiar de estado.
 
-## 9. Deuda técnica conocida (a revisar en Fase 9)
+## 9. Fase 8 — Dashboard y reportes
+
+**Reportes agregados en el backend, no calculados en el cliente.** Traer
+todas las ventas al frontend y sumarlas ahí no escala y duplica la lógica de
+negocio; `reports.service.ts` agrupa en el servidor (por período, por
+producto, por proveedor, por método de pago) y el frontend solo pinta el
+resultado ya calculado.
+
+**Bug real encontrado y corregido**: `resolveRange()` parseaba `to` como UTC
+(`new Date("2026-09-15")` → medianoche UTC) y después llamaba `setHours(23,59,59,999)`,
+que muta en el timezone **local del proceso Node**, no en UTC. Con un
+servidor en un timezone con offset negativo, el límite superior del rango
+terminaba antes de la medianoche UTC real, y una venta de esa misma tarde
+quedaba excluida de "Ventas por período" aunque sí aparecía en el Dashboard
+(que no pasa por `resolveRange`). Se corrigió construyendo `to`/`from`
+siempre como instantes UTC explícitos (`` `${to}T23:59:59.999Z` ``), sin
+mezclar parseo UTC con mutación en hora local.
+
+**Ganancia estimada usa el costo (`purchasePrice`) *actual* del producto**,
+no el costo real al momento de esa venta puntual (el modelo no guarda un
+costo histórico por línea de venta) — de ahí el nombre "estimada" en vez de
+"exacta", tal como lo pide la sección 13 del brief.
+
+**Import/export CSV reutiliza `common/utils/csv.ts`** (ya escrito en la
+Fase 3) para ventas por período y productos más/menos vendidos; el stock
+actual reutiliza el export de Productos de la Fase 3 y los movimientos de
+inventario suman un endpoint de export propio en el módulo de Inventario.
+
+## 10. Deuda técnica conocida (a revisar en Fase 9)
 
 `npm audit` reporta vulnerabilidades en `vite`/`esbuild` (moderate/high, servidor de
 desarrollo) y `vitest` (critical, solo se ejecuta en tests) y `react-router-dom`

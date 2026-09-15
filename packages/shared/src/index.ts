@@ -15,3 +15,4 @@ export * from './schemas/purchase.schema.js';
 export * from './schemas/customer.schema.js';
 export * from './schemas/sale.schema.js';
 export * from './schemas/cashregister.schema.js';
+export * from './schemas/report.schema.js';

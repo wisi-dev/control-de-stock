@@ -6,6 +6,7 @@ import * as inventoryController from './inventory.controller.js';
 export const inventoryRouter = Router();
 inventoryRouter.use(authenticate);
 
+inventoryRouter.get('/movements/export', authorize('inventory:read'), asyncHandler(inventoryController.exportMovements));
 inventoryRouter.get('/movements', authorize('inventory:read'), asyncHandler(inventoryController.listMovements));
 inventoryRouter.post('/movements', authorize('inventory:*'), asyncHandler(inventoryController.createMovement));
 inventoryRouter.get('/alerts', authorize('inventory:read'), asyncHandler(inventoryController.getAlerts));

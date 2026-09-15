@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell.js';
-import { PlaceholderPage } from '../pages/PlaceholderPage.js';
 import { DashboardPage } from '../pages/DashboardPage.js';
 import { LoginPage } from '../pages/LoginPage.js';
 import { UsersPage } from '../pages/UsersPage.js';
@@ -12,14 +11,14 @@ import { PurchasesPage } from '../pages/PurchasesPage.js';
 import { SalesPage } from '../pages/SalesPage.js';
 import { CustomersPage } from '../pages/CustomersPage.js';
 import { CashRegisterPage } from '../pages/CashRegisterPage.js';
+import { ReportsPage } from '../pages/ReportsPage.js';
 import { RequireAuth } from './RequireAuth.js';
 
 /**
- * Mapa de rutas del sistema. Los módulos que todavía no se implementaron
- * (ver Fase 8) muestran un placeholder con su nombre y la fase en la
- * que se van a construir, para que la navegación completa sea visible desde
- * la Fase 1 sin fingir funcionalidad que todavía no existe. Todo lo que no
- * sea /login pasa por `RequireAuth`.
+ * Mapa de rutas del sistema — todos los módulos de negocio (Fases 1 a 8)
+ * están implementados. Lo que queda (Fase 9: testing/seguridad/optimización,
+ * Fase 10: Docker de producción/deployment) no agrega rutas nuevas. Todo lo
+ * que no sea /login pasa por `RequireAuth`.
  */
 export function AppRouter() {
   return (
@@ -37,10 +36,7 @@ export function AppRouter() {
           <Route path="/clientes" element={<CustomersPage />} />
           <Route path="/proveedores" element={<SuppliersPage />} />
           <Route path="/caja" element={<CashRegisterPage />} />
-          <Route
-            path="/reportes"
-            element={<PlaceholderPage title="Reportes" phase="Fase 8" />}
-          />
+          <Route path="/reportes" element={<ReportsPage />} />
           <Route path="/usuarios" element={<UsersPage />} />
           <Route path="/configuracion" element={<ConfiguracionPage />} />
         </Route>
