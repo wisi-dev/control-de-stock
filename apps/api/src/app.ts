@@ -7,9 +7,12 @@ import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler } from './common/middlewares/errorHandler.js';
 import { notFoundHandler } from './common/middlewares/notFound.js';
-// Los routers de cada módulo (auth, products, inventory, ...) se registran acá
-// a medida que se implementan en las siguientes fases.
-// import { authRouter } from './modules/auth/auth.routes.js';
+import { authRouter } from './modules/auth/auth.routes.js';
+import { usersRouter } from './modules/users/users.routes.js';
+import { rolesRouter } from './modules/roles/roles.routes.js';
+import { settingsRouter } from './modules/settings/settings.routes.js';
+// Los routers de los próximos módulos (products, inventory, purchases, ...)
+// se registran acá a medida que se implementan en las siguientes fases.
 
 export function createApp() {
   const app = express();
@@ -42,9 +45,12 @@ export function createApp() {
     res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } });
   });
 
-  // app.use('/api/auth', authRouter);
-  // Próximos módulos: users, roles, products, categories, brands, suppliers,
-  // inventory, purchases, sales, customers, cashregister, reports, audit.
+  app.use('/api/auth', authRouter);
+  app.use('/api/users', usersRouter);
+  app.use('/api/roles', rolesRouter);
+  app.use('/api/settings', settingsRouter);
+  // Próximos módulos: products, categories, brands, suppliers, inventory,
+  // purchases, sales, customers, cashregister, reports, audit.
 
   app.use(notFoundHandler);
   app.use(errorHandler);

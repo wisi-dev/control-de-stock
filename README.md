@@ -80,13 +80,19 @@ control-de-stock/
    npm run prisma:migrate -- --name init
    ```
 
-5. **Cargar datos de ejemplo** (roles, permisos y un usuario administrador):
+5. **Cargar datos de ejemplo** (roles, permisos y un usuario por rol):
 
    ```bash
    npm run db:seed
    ```
 
-   Usuario de prueba: `admin@controldestock.local` / `Admin123!`
+   Usuarios de prueba:
+
+   | Rol | Email | Contraseña |
+   |---|---|---|
+   | ADMINISTRADOR | `admin@controldestock.local` | `Admin123!` |
+   | ENCARGADO | `encargado@controldestock.local` | `Encargado123!` |
+   | VENDEDOR | `vendedor@controldestock.local` | `Vendedor123!` |
 
 6. **Levantar backend y frontend** (en dos terminales):
 
@@ -109,10 +115,15 @@ control-de-stock/
 
 ## Estado del proyecto
 
-El desarrollo avanza por fases (ver `docs/ARQUITECTURA.md`). **Fase 1 completa:**
-arquitectura, monorepo, schema de base de datos completo, configuración inicial,
-layout de la app y navegación (con módulos en placeholder hasta su fase correspondiente).
+El desarrollo avanza por fases (ver `docs/ARQUITECTURA.md`).
 
-Las fases siguientes (autenticación, productos, inventario, compras, ventas, clientes,
-caja, dashboard/reportes, testing/seguridad, Docker de producción) se documentan y
-construyen una por una.
+- **Fase 1 completa:** arquitectura, monorepo, schema de base de datos completo,
+  configuración inicial, layout de la app y navegación.
+- **Fase 2 completa:** login JWT, ABM de usuarios, roles y permisos configurables por
+  módulo, configuración general del negocio. Los módulos en placeholder (Productos,
+  Inventario, Compras, Ventas, Clientes, Proveedores, Caja, Reportes) se construyen en
+  las fases siguientes.
+
+Las fases siguientes (productos, inventario, compras, ventas, clientes, caja,
+dashboard/reportes, testing/seguridad, Docker de producción) se documentan y construyen
+una por una.

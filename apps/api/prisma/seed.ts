@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs';
 import { DEFAULT_ROLE_PERMISSIONS, RoleName } from '@control-stock/shared';
 
 /**
- * Seed mínimo de la Fase 1: roles, permisos base y un usuario administrador
- * para poder levantar el sistema. El seed completo con productos, clientes,
+ * Roles, permisos base y un usuario de ejemplo por rol (Fase 2) para poder
+ * probar el sistema con cada nivel de acceso. El seed con productos, clientes,
  * proveedores, ventas y compras de ejemplo se agrega en la Fase 3 en adelante.
  */
 const prisma = new PrismaClient();
@@ -34,20 +34,22 @@ async function main() {
     }
   }
 
-  const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: RoleName.ADMINISTRADOR } });
+  console.log('👤 Creando usuarios de ejemplo...');
+  const demoUsers = [
+    { name: 'Administrador', email: 'admin@controldestock.local', password: 'Admin123!', role: RoleName.ADMINISTRADOR },
+    { name: 'Carla Encargada', email: 'encargado@controldestock.local', password: 'Encargado123!', role: RoleName.ENCARGADO },
+    { name: 'Juan Vendedor', email: 'vendedor@controldestock.local', password: 'Vendedor123!', role: RoleName.VENDEDOR },
+  ];
 
-  console.log('👤 Creando usuario administrador...');
-  const passwordHash = await bcrypt.hash('Admin123!', 10);
-  await prisma.user.upsert({
-    where: { email: 'admin@controldestock.local' },
-    update: {},
-    create: {
-      name: 'Administrador',
-      email: 'admin@controldestock.local',
-      passwordHash,
-      roleId: adminRole.id,
-    },
-  });
+  for (const demoUser of demoUsers) {
+    const role = await prisma.role.findUniqueOrThrow({ where: { name: demoUser.role } });
+    const passwordHash = await bcrypt.hash(demoUser.password, 10);
+    await prisma.user.upsert({
+      where: { email: demoUser.email },
+      update: {},
+      create: { name: demoUser.name, email: demoUser.email, passwordHash, roleId: role.id },
+    });
+  }
 
   console.log('🏢 Creando configuración de negocio por defecto...');
   const existingConfig = await prisma.businessConfig.findFirst();
@@ -62,8 +64,10 @@ async function main() {
     });
   }
 
-  console.log('✅ Seed completo.');
-  console.log('   Login de prueba -> admin@controldestock.local / Admin123!');
+  console.log('✅ Seed completo. Logins de prueba:');
+  for (const demoUser of demoUsers) {
+    console.log(`   ${demoUser.role} -> ${demoUser.email} / ${demoUser.password}`);
+  }
 }
 
 main()

@@ -25,6 +25,8 @@ export interface BaseEntity {
 export interface Role extends BaseEntity {
   name: RoleName;
   description: string | null;
+  /** Presente cuando el endpoint lo incluye explícitamente (ej: GET /api/roles). */
+  permissions?: string[];
 }
 
 export interface User extends BaseEntity {
@@ -34,6 +36,20 @@ export interface User extends BaseEntity {
   role?: Role;
   active: boolean;
   lastLoginAt: string | null;
+}
+
+export interface UserWithRole extends User {
+  role: Role;
+}
+
+/** Forma del usuario autenticado, tal como la devuelven /auth/login y /auth/me. */
+export interface SessionUser {
+  id: string;
+  name: string;
+  email: string;
+  roleId: string;
+  roleName: RoleName;
+  permissions: string[];
 }
 
 export interface Category extends BaseEntity {

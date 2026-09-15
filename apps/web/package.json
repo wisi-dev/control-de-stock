@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@control-stock/shared": "*",
+    "@hookform/resolvers": "^3.9.0",
     "@tanstack/react-query": "^5.53.1",
     "axios": "^1.7.5",
     "clsx": "^2.1.1",

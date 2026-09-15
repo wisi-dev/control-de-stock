@@ -1,10 +1,23 @@
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, LogOut, Menu, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore.js';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
 }
 
 export function Header({ onOpenMobileMenu }: HeaderProps) {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const clearSession = useAuthStore((s) => s.clearSession);
+
+  function handleLogout() {
+    clearSession();
+    navigate('/login', { replace: true });
+  }
+
+  const initial = user?.name?.charAt(0).toUpperCase() ?? '?';
+
   return (
     <header className="flex h-14 items-center justify-between gap-3 border-b border-slate-200 bg-surface px-4 sm:px-6">
       <button
@@ -31,13 +44,21 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         </button>
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
-            A
+            {initial}
           </div>
           <div className="hidden text-sm leading-tight sm:block">
-            <p className="font-medium text-ink">Administrador</p>
-            <p className="text-ink-subtle">admin@controldestock.local</p>
+            <p className="font-medium text-ink">{user?.name ?? 'Usuario'}</p>
+            <p className="text-ink-subtle">{user?.email}</p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          aria-label="Cerrar sesión"
+          className="rounded-lg p-2 text-ink-muted hover:bg-slate-100"
+        >
+          <LogOut className="h-5 w-5" strokeWidth={1.75} />
+        </button>
       </div>
     </header>
   );

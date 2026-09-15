@@ -13,7 +13,9 @@ import {
   X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { hasPermission } from '@control-stock/shared';
 import { cn } from '../../lib/utils.js';
+import { useAuthStore } from '../../store/authStore.js';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,9 +29,10 @@ const navItems = [
   { to: '/reportes', label: 'Reportes', icon: BarChart3 },
 ];
 
+/** `permission` es la clave requerida para ver el ítem — solo el rol Administrador la tiene por defecto. */
 const bottomNavItems = [
-  { to: '/usuarios', label: 'Usuarios y roles', icon: ShieldCheck },
-  { to: '/configuracion', label: 'Configuración', icon: Settings },
+  { to: '/usuarios', label: 'Usuarios y roles', icon: ShieldCheck, permission: 'users:*' },
+  { to: '/configuracion', label: 'Configuración', icon: Settings, permission: 'settings:*' },
 ];
 
 interface SidebarProps {
@@ -79,6 +82,9 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const permissions = useAuthStore((s) => s.user?.permissions ?? []);
+  const visibleBottomItems = bottomNavItems.filter((item) => hasPermission(permissions, item.permission));
+
   return (
     <>
       <div className="hidden h-14 items-center gap-2 border-b border-slate-100 px-5 md:flex">
@@ -89,16 +95,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-        {navItems.map((item) => (
-          <SidebarLink key={item.to} onNavigate={onNavigate} {...item} />
+        {navItems.map(({ to, label, icon }) => (
+          <SidebarLink key={to} to={to} label={label} icon={icon} onNavigate={onNavigate} />
         ))}
       </nav>
 
-      <div className="space-y-0.5 border-t border-slate-100 px-3 py-4">
-        {bottomNavItems.map((item) => (
-          <SidebarLink key={item.to} onNavigate={onNavigate} {...item} />
-        ))}
-      </div>
+      {visibleBottomItems.length > 0 && (
+        <div className="space-y-0.5 border-t border-slate-100 px-3 py-4">
+          {visibleBottomItems.map(({ to, label, icon }) => (
+            <SidebarLink key={to} to={to} label={label} icon={icon} onNavigate={onNavigate} />
+          ))}
+        </div>
+      )}
     </>
   );
 }

@@ -109,7 +109,7 @@ Reglas de integridad ya modeladas en el schema:
 | Fase | Contenido | Estado |
 |---|---|---|
 | 1 | Arquitectura, monorepo, base de datos, configuración inicial | ✅ Completa |
-| 2 | Autenticación (JWT), usuarios, roles y permisos | Pendiente |
+| 2 | Autenticación (JWT), usuarios, roles y permisos | ✅ Completa |
 | 3 | Productos, categorías, marcas, proveedores | Pendiente |
 | 4 | Inventario, movimientos, alertas de stock | Pendiente |
 | 5 | Compras | Pendiente |
@@ -123,7 +123,34 @@ Al cerrar cada fase: se corren pruebas/typecheck, se revisan errores, se verific
 integración con lo ya construido, y se explica brevemente qué se agregó antes de pasar
 a la siguiente.
 
-## 4. Deuda técnica conocida (a revisar en Fase 9)
+## 4. Fase 2 — Autenticación, usuarios y roles
+
+**JWT stateless** firmado con `JWT_SECRET`/`JWT_EXPIRES_IN`. El middleware `authenticate`
+no confía solo en el payload del token: en cada request vuelve a leer el usuario (con su
+rol y permisos) desde la base, así un usuario desactivado o con el rol cambiado pierde
+acceso inmediatamente sin esperar a que expire el token.
+
+**Permisos por clave de recurso** (`hasPermission` en `packages/shared/src/permissions.ts`),
+evaluados siempre en el backend (`authorize('<recurso>:*'|'<recurso>:read')`) — el frontend
+(`usePermission`) solo usa la misma función para ocultar navegación y bloquear rutas por
+UX, nunca como única barrera. `ADMINISTRADOR` tiene `'*'` y no se puede editar desde
+`PUT /api/roles/:id/permissions`.
+
+**Passwords con bcrypt** (10 rounds). El login compara siempre contra un hash (real o uno
+dummy fijo si el email no existe) para que el tiempo de respuesta no revele si un email
+está registrado. Rate limiting propio y más estricto en `/api/auth/login` (10 intentos /
+15 min) además del límite general de `/api`.
+
+**Auto-protecciones**: un usuario no puede desactivar su propia cuenta (`users.service.ts`),
+validado en el backend incluso si se llama a la API directamente. Todo login, alta,
+cambio de rol/estado y cambio de contraseña queda en `AuditLog` (`common/utils/audit.ts`),
+sin romper el flujo principal si el log fallara.
+
+**UI**: primitivos nuevos (`Input`, `Select`, `Modal`, `Badge`, `Toast`) reutilizables desde
+acá para todos los módulos siguientes. `RequireAuth` valida el token contra `/auth/me` al
+refrescar la página antes de dejar pasar a cualquier ruta protegida.
+
+## 5. Deuda técnica conocida (a revisar en Fase 9)
 
 `npm audit` reporta vulnerabilidades en `vite`/`esbuild` (moderate/high, servidor de
 desarrollo) y `vitest` (critical, solo se ejecuta en tests) y `react-router-dom`
